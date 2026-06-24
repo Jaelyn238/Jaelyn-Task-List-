@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Jaelyn's Checklist</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F7F6F3; color: #1a1a1a; min-height: 100vh; }
+
+.header { background: #fff; border-bottom: 1px solid #E8E6E1; padding: 14px 16px; position: sticky; top: 0; z-index: 20; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.header-title { font-size: 17px; font-weight: 700; }
+.header-date { font-size: 11px; color: #888; margin-top: 1px; }
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+.stat { background: #F7F6F3; border-radius: 10px; padding: 7px 8px; text-align: center; }
+.stat-num { font-size: 18px; font-weight: 700; }
+.stat-label { font-size: 10px; color: #888; }
+.stat.su { background:#FEF0F0; } .stat.su .stat-num { color:#C0392B; }
+.stat.sp { background:#FEF9EE; } .stat.sp .stat-num { color:#B7791F; }
+.stat.sd { background:#F0FAF4; } .stat.sd .stat-num { color:#276749; }
+
+.sync-bar { background:#F0FDF4; border-bottom:1px solid #BBF7D0; padding:6px 16px; display:flex; align-items:center; justify-content:space-between; font-size:11px; }
+.sync-status { color:#166534; font-weight:500; display:flex; align-items:center; gap:5px; }
+.sync-dot { width:7px; height:7px; border-radius:50%; background:#22C55E; flex-shrink:0; }
+.sync-dot.syncing { background:#F59E0B; animation:pulse 1s infinite; }
+.sync-dot.error { background:#EF4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.sync-btn { font-size:11px; font-weight:600; color:#166534; background:none; border:none; cursor:pointer; padding:2px 6px; border-radius:6px; }
+.sync-btn:active { background:#DCFCE7; }
+
+.mtg-bar { background:#EDE9FE; border-bottom:1px solid #DDD6FE; padding:8px 16px; display:flex; align-items:center; gap:8px; overflow-x:auto; flex-wrap:nowrap; }
+.mtg-bar::-webkit-scrollbar { display:none; }
+.mtg-chip { font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
+
+.filters { display:flex; gap:6px; padding:10px 16px; overflow-x:auto; background:#fff; border-bottom:1px solid #E8E6E1; }
+.filters::-webkit-scrollbar { display:none; }
+.fbtn { font-size:12px; padding:5px 14px; border-radius:20px; border:1px solid #ddd; background:#fff; color:#666; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.fbtn.active { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+
+.content { padding:14px 16px; max-width:680px; margin:0 auto; padding-bottom:100px; }
+
+.client-card { background:#fff; border-radius:14px; margin-bottom:12px; overflow:hidden; border:1px solid #E8E6E1; }
+.client-header { display:flex; align-items:center; gap:10px; padding:11px 14px; }
+.client-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+.client-info { flex:1; }
+.client-name { font-size:13px; font-weight:700; }
+.client-sub { font-size:11px; color:#888; }
+.urg-badge { font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; background:#FEF0F0; color:#C0392B; flex-shrink:0; }
+.del-client-btn { font-size:11px; padding:3px 8px; border-radius:8px; border:1px solid #eee; background:#fff; color:#ccc; cursor:pointer; flex-shrink:0; }
+
+.sec-div { font-size:10px; font-weight:600; color:#aaa; text-transform:uppercase; letter-spacing:0.06em; padding:5px 14px; background:#F7F6F3; border-top:1px solid #E8E6E1; border-bottom:1px solid #E8E6E1; }
+
+.task-row { display:flex; align-items:flex-start; gap:10px; padding:11px 14px; border-top:1px solid #F0EEE9; cursor:pointer; }
+.task-row:active { background:#F7F6F3; }
+.task-row.done { opacity:0.4; }
+.task-row.done .task-text { text-decoration:line-through; color:#aaa; }
+.cb-circle { width:20px; height:20px; border-radius:50%; border:2px solid #ddd; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; transition:all 0.15s; }
+.task-row.done .cb-circle { background:#276749; border-color:#276749; }
+.chk { display:none; }
+.task-row.done .chk { display:block; }
+.task-body { flex:1; min-width:0; }
+.task-date { font-size:10px; color:#7C3AED; font-weight:600; margin-bottom:2px; }
+.task-freq { font-size:10px; color:#aaa; font-weight:500; margin-bottom:2px; }
+.task-text { font-size:13px; line-height:1.5; color:#1a1a1a; word-break:break-word; }
+.task-notes { font-size:11px; color:#888; margin-top:3px; }
+.task-pills { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; }
+.pill { font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+.p-urgent{background:#FEF0F0;color:#C0392B;} .p-high{background:#FEF9EE;color:#B7791F;}
+.p-normal{background:#EEF6FF;color:#1A56DB;} .p-recurring{background:#F0FAF4;color:#276749;}
+.del-btn { font-size:17px; color:#ddd; padding:0 2px; flex-shrink:0; background:none; border:none; cursor:pointer; margin-top:1px; }
+.del-btn:active { color:#C0392B; }
+
+.empty { text-align:center; padding:36px 20px; color:#bbb; font-size:13px; }
+
+.fab { position:fixed; bottom:24px; right:20px; width:52px; height:52px; border-radius:50%; background:#7C3AED; color:#fff; font-size:26px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:30; box-shadow:0 4px 16px rgba(124,58,237,0.35); }
+.fab:active { background:#5B21B6; }
+
+.sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40; }
+.sheet-overlay.open { display:block; }
+.sheet { position:fixed; bottom:0; left:0; right:0; background:#fff; border-radius:20px 20px 0 0; padding:20px 16px 36px; z-index:50; transform:translateY(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); max-height:90vh; overflow-y:auto; }
+.sheet.open { transform:translateY(0); }
+.sheet-handle { width:36px; height:4px; background:#E5E7EB; border-radius:4px; margin:0 auto 16px; }
+.sheet-title { font-size:15px; font-weight:700; margin-bottom:14px; color:#1a1a1a; }
+.mode-toggle { display:flex; gap:6px; margin-bottom:14px; }
+.mode-btn { flex:1; font-size:12px; font-weight:700; padding:8px; border-radius:10px; border:1px solid #ddd; background:#F7F6F3; color:#888; cursor:pointer; }
+.mode-btn.active { background:#7C3AED; color:#fff; border-color:#7C3AED; }
+.field { margin-bottom:10px; }
+.field label { font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:5px; }
+.field input, .field select { width:100%; font-size:13px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; background:#F7F6F3; color:#1a1a1a; outline:none; }
+.field input:focus, .field select:focus { border-color:#7C3AED; background:#fff; }
+.row2 { display:flex; gap:8px; }
+.row2 .field { flex:1; }
+.save-btn { width:100%; font-size:14px; font-weight:700; padding:13px; border-radius:12px; border:none; background:#7C3AED; color:#fff; cursor:pointer; margin-top:6px; }
+.save-btn:active { background:#5B21B6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Jaelyn's checklist</div>
+      <div class="header-date" id="date-str"></div>
+    </div>
+    <button onclick="resetDone()" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;">Reset ticks</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+    <div class="stat su"><div class="stat-num" id="s-urgent">0</div><div class="stat-label">Urgent</div></div>
+    <div class="stat sp"><div class="stat-num" id="s-pending">0</div><div class="stat-label">Pending</div></div>
+    <div class="stat sd"><div class="stat-num" id="s-done">0</div><div class="stat-label">Done</div></div>
+  </div>
+</div>
+
+<div class="sync-bar">
+  <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">Syncing...</span></div>
+  <button class="sync-btn" onclick="syncNow()">↻ Sync now</button>
+</div>
+
+<div class="mtg-bar">
+  <span style="font-size:11px;font-weight:700;color:#5B21B6;white-space:nowrap;flex-shrink:0;">Haleon promoter mtgs:</span>
+  <span id="mtg-chips"></span>
+</div>
+
+<div class="filters">
+  <button class="fbtn active" id="f-all" onclick="setF('all')">All</button>
+  <button class="fbtn" id="f-urgent" onclick="setF('urgent')">Urgent</button>
+  <button class="fbtn" id="f-pending" onclick="setF('pending')">Tasks pending</button>
+  <button class="fbtn" id="f-done" onclick="setF('done')">Done</button>
+  <button class="fbtn" id="f-recurring" onclick="setF('recurring')">Recurring</button>
+</div>
+
+<div class="content" id="board"></div>
+
+<button class="fab" onclick="openSheet()" aria-label="Add task">+</button>
+
+<div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Add new task</div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="m-task" onclick="setMode('task')">One-off task</button>
+    <button class="mode-btn" id="m-rec" onclick="setMode('rec')">Recurring</button>
+    <button class="mode-btn" id="m-client" onclick="setMode('client')">New client</button>
+  </div>
+  <div id="form-task">
+    <div class="field"><label>Task description</label><input id="t-text" placeholder="e.g. Site visit Sengkang — outcome follow up"/></div>
+    <div class="row2">
+      <div class="field"><label>Client</label><select id="t-client"></select></div>
+      <div class="field"><label>Priority</label>
+        <select id="t-priority">
+          <option value="urgent">Urgent</option>
+          <option value="high" selected>High</option>
+          <option value="normal">Normal</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Date (optional)</label><input type="date" id="t-date"/></div>
+      <div class="field"><label>Notes (optional)</label><input id="t-notes" placeholder="e.g. Bring reports"/></div>
+    </div>
+    <button class="save-btn" onclick="addTask()">Save task</button>
+  </div>
+  <div id="form-rec" style="display:none;">
+    <div class="field"><label>Task description</label><input id="r-text" placeholder="e.g. Send payroll to Finance"/></div>
+    <div class="row2">
+      <div class="field"><label>Client</label><select id="r-client"></select></div>
+      <div class="field"><label>Frequency</label><input id="r-freq" placeholder="e.g. Every Monday / Every 24th"/></div>
+    </div>
+    <button class="save-btn" onclick="addRecurring()">Save recurring task</button>
+  </div>
+  <div id="form-client" style="display:none;">
+    <div class="field"><label>Client name</label><input id="c-name" placeholder="e.g. Guardian, Watsons..."/></div>
+    <button class="save-btn" onclick="addClient()">Save new client</button>
+  </div>
+</div>
+
+<script>
+// ─── JSONBin config ───────────────────────────────────────────
+// FREE sync database — stores your ticks & tasks online
+// Sign up free at jsonbin.io, create a bin, paste your Master Key and Bin ID below
+const JSONBIN_KEY  = '$2a$10$cPMtIivM6GPZzJzwfjt/GOFmzvfQchOtBmuMBD63IQuvqm/Sot2R2'; // e.g. $2b$10$xxxxx
+const JSONBIN_BIN  = '6a3b89c4da38895dfef5fbd7';             // e.g. 6478abc123def
+const SYNC_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`;
+const SYNC_ENABLED = JSONBIN_KEY !== 'YOUR_JSONBIN_MASTER_KEY';
+
+// ─── Colour palettes ──────────────────────────────────────────
+const BG_PAL  = ['#EDE9FE','#D1FAE5','#FCE7F3','#FFEDD5','#DBEAFE','#FEF9C3','#FFE4E6','#ECFDF5','#FFF7ED','#F0FDF4'];
+const COL_PAL = ['#5B21B6','#065F46','#9D174D','#9A3412','#1E40AF','#854D0E','#9F1239','#065F46','#9A3412','#166534'];
+const DOT_PAL = ['#7C3AED','#059669','#BE185D','#EA580C','#2563EB','#CA8A04','#E11D48','#10B981','#F97316','#16A34A'];
+
+const DEFAULT_CLIENTS = [
+  {name:'Haleon',bg:'#EDE9FE',c:'#5B21B6',dot:'#7C3AED',initials:'HA'},
+  {name:'Kowa',bg:'#D1FAE5',c:'#065F46',dot:'#059669',initials:'KO'},
+  {name:'Loreal Airport',bg:'#FCE7F3',c:'#9D174D',dot:'#BE185D',initials:'LA'},
+  {name:'Loreal Adhoc',bg:'#FFEDD5',c:'#9A3412',dot:'#EA580C',initials:'LC'},
+  {name:'Shiseido',bg:'#DBEAFE',c:'#1E40AF',dot:'#2563EB',initials:'SH'},
+  {name:'Atorrege',bg:'#FEF9C3',c:'#854D0E',dot:'#CA8A04',initials:'AT'},
+  {name:'General',bg:'#F3F4F6',c:'#374151',dot:'#6B7280',initials:'GEN'},
+];
+
+const MEETINGS=[{date:'2026-07-17',label:'17 Jul'},{date:'2026-08-14',label:'14 Aug'},{date:'2026-09-11',label:'11 Sep'},{date:'2026-10-09',label:'9 Oct'},{date:'2026-11-06',label:'6 Nov'},{date:'2026-12-04',label:'4 Dec'}];
+const PILL_CLS={urgent:'p-urgent',high:'p-high',normal:'p-normal',recurring:'p-recurring'};
+const PILL_TXT={urgent:'Urgent',high:'High',normal:'Normal',recurring:'Recurring'};
+const P_ORD={urgent:0,high:1,normal:2,recurring:3};
+
+function getDefault(){
+  return {nextId:100,done:[],clients:[...DEFAULT_CLIENTS],tasks:[
+    {id:1,client:'Haleon',type:'task',p:'urgent',text:'Haleon 2 full time — onboard & start immediately',date:'',notes:''},
+    {id:2,client:'Haleon',type:'task',p:'urgent',text:'Sent over quotation — deadline 24th',date:'',notes:''},
+    {id:3,client:'Loreal Airport',type:'task',p:'urgent',text:'Iris Teo — pending airport pass application & training',date:'',notes:''},
+    {id:4,client:'Loreal Adhoc',type:'task',p:'urgent',text:'Jul 16–19 events — confirm 1 pax manpower',date:'',notes:''},
+    {id:5,client:'Shiseido',type:'task',p:'urgent',text:'Shiseido schedule sent (for fragrance)',date:'',notes:''},
+    {id:6,client:'Shiseido',type:'task',p:'urgent',text:'Shiseido events for Taka',date:'',notes:''},
+    {id:7,client:'Atorrege',type:'task',p:'urgent',text:'23 Jul – 19 Aug every weekend (ongoing)',date:'',notes:''},
+    {id:8,client:'Haleon',type:'task',p:'high',text:'Urgent Aug — repropose location for Guardian Bugis',date:'',notes:''},
+    {id:9,client:'Haleon',type:'task',p:'high',text:'Propose Sept–Dec store (Watson)',date:'',notes:''},
+    {id:10,client:'Haleon',type:'task',p:'high',text:'Check in on Yinxu works — promoter grading updates',date:'',notes:''},
+    {id:11,client:'Haleon',type:'task',p:'high',text:'Store visits: Sengkang Grand Mall, Compass One, Chinatown Point, Guardian Hougang 205',date:'',notes:''},
+    {id:12,client:'Kowa',type:'task',p:'high',text:'Sent over quotation for Jul–Nov',date:'',notes:''},
+    {id:13,client:'Kowa',type:'task',p:'high',text:'Revised quotation for events (Japanese) Oct–Dec',date:'',notes:''},
+    {id:14,client:'Loreal Airport',type:'task',p:'high',text:'Xinyi — return uniform?',date:'',notes:''},
+    {id:15,client:'Loreal Airport',type:'task',p:'high',text:'Sent quotation',date:'',notes:''},
+    {id:16,client:'Loreal Adhoc',type:'task',p:'high',text:'Both quotations need resending',date:'',notes:''},
+    {id:17,client:'Loreal Adhoc',type:'task',p:'high',text:'New events for Cerave 3 pax (manpower secured)',date:'',notes:''},
+    {id:18,client:'Shiseido',type:'task',p:'high',text:'Remember to send quote',date:'',notes:''},
+    {id:19,client:'Atorrege',type:'task',p:'high',text:'Prepare quotation for AD+ events',date:'',notes:''},
+    {id:20,client:'Kowa',type:'task',p:'normal',text:'Automate sales record for Vantelin',date:'',notes:''},
+    {id:21,client:'Kowa',type:'task',p:'normal',text:'HST — prepare contract and send over profile',date:'',notes:''},
+    {id:22,client:'Haleon',type:'recurring',p:'recurring',freq:'Every Monday',text:'Update promoter grading table to Haleon'},
+    {id:23,client:'Kowa',type:'recurring',p:'recurring',freq:'Every Monday',text:'Update sales report to Kowa'},
+    {id:24,client:'General',type:'recurring',p:'recurring',freq:'Every Thursday',text:'Do payroll'},
+    {id:25,client:'Haleon',type:'recurring',p:'recurring',freq:'Every 17th',text:'Send Haleon payroll to Farah'},
+    {id:26,client:'Haleon',type:'recurring',p:'recurring',freq:'Every 22nd',text:'Send Haleon payroll to Finance — prepare quotation'},
+    {id:27,client:'Haleon',type:'recurring',p:'recurring',freq:'Every 24th',text:'Send quotation to Haleon'},
+    {id:28,client:'Loreal Airport',type:'recurring',p:'recurring',freq:'Every 24th',text:'Send Loreal Airport payroll to HR'},
+    {id:29,client:'Shiseido',type:'recurring',p:'recurring',freq:'Every 24th',text:'Shiseido schedule — must be received by today'},
+    {id:30,client:'General',type:'recurring',p:'recurring',freq:'Every 25th',text:'Submit claim'},
+    {id:31,client:'Shiseido',type:'recurring',p:'recurring',freq:'Every 29th',text:'Send Shiseido schedule — last day to send!'},
+  ]};
+}
+
+let state = JSON.parse(localStorage.getItem('jaelyn_v2')||'null') || getDefault();
+let done = new Set(state.done);
+let filter = 'all';
+let sheetMode = 'task';
+let syncTimeout = null;
+
+// ─── Sync functions ───────────────────────────────────────────
+function setSyncStatus(status, text){
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot' + (status==='syncing'?' syncing':status==='error'?' error':'');
+  txt.textContent = text;
+}
+
+async function pushToCloud(data){
+  if(!SYNC_ENABLED) return;
+  setSyncStatus('syncing','Syncing...');
+  try {
+    await fetch(SYNC_URL, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+      body: JSON.stringify(data)
+    });
+    setSyncStatus('ok','Synced across all devices ✓');
+  } catch(e) {
+    setSyncStatus('error','Sync failed — saved locally');
+  }
+}
+
+async function pullFromCloud(){
+  if(!SYNC_ENABLED){ setSyncStatus('ok','Saved locally (set up sync below)'); return; }
+  setSyncStatus('syncing','Loading...');
+  try {
+    const res = await fetch(SYNC_URL+'/latest', {headers:{'X-Master-Key':JSONBIN_KEY}});
+    const json = await res.json();
+    if(json.record && json.record.nextId){
+      state = json.record;
+      done = new Set(state.done);
+      localStorage.setItem('jaelyn_v2', JSON.stringify(state));
+      setSyncStatus('ok','Synced across all devices ✓');
+      render();
+    }
+  } catch(e) {
+    setSyncStatus('error','Could not reach server — using local data');
+  }
+}
+
+function schedulePush(){
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(()=>pushToCloud(state), 1200);
+}
+
+async function syncNow(){ await pullFromCloud(); }
+
+// ─── Save ─────────────────────────────────────────────────────
+function save(){
+  state.done=[...done];
+  localStorage.setItem('jaelyn_v2',JSON.stringify(state));
+  schedulePush();
+}
+
+// ─── Client helpers ───────────────────────────────────────────
+function cs(name){ return state.clients.find(c=>c.name===name)||{initials:name.substring(0,2).toUpperCase(),bg:'#F3F4F6',c:'#374151',dot:'#6B7280'}; }
+
+function fillSelects(){
+  ['t-client','r-client'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    sel.innerHTML='';
+    state.clients.forEach(c=>{ const o=document.createElement('option'); o.value=c.name; o.textContent=c.name; sel.appendChild(o); });
+    if(cur) sel.value=cur;
+  });
+}
+
+// ─── Sheet ────────────────────────────────────────────────────
+function openSheet(){ document.getElementById('overlay').classList.add('open'); document.getElementById('sheet').classList.add('open'); fillSelects(); }
+function closeSheet(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('sheet').classList.remove('open'); }
+
+function setMode(m){
+  sheetMode=m;
+  ['task','rec','client'].forEach(v=>{
+    document.getElementById('m-'+v).className='mode-btn'+(v===m?' active':'');
+    document.getElementById('form-'+v).style.display=v===m?'block':'none';
+  });
+}
+
+// ─── Add actions ──────────────────────────────────────────────
+function addTask(){
+  const text=document.getElementById('t-text').value.trim();
+  if(!text){alert('Please enter a task description');return;}
+  state.tasks.push({id:state.nextId++,client:document.getElementById('t-client').value,type:'task',p:document.getElementById('t-priority').value,text,date:document.getElementById('t-date').value,notes:document.getElementById('t-notes').value.trim()});
+  document.getElementById('t-text').value=''; document.getElementById('t-date').value=''; document.getElementById('t-notes').value='';
+  save(); render(); closeSheet();
+}
+
+function addRecurring(){
+  const text=document.getElementById('r-text').value.trim();
+  const freq=document.getElementById('r-freq').value.trim();
+  if(!text||!freq){alert('Please fill in task and frequency');return;}
+  state.tasks.push({id:state.nextId++,client:document.getElementById('r-client').value,type:'recurring',p:'recurring',freq,text});
+  document.getElementById('r-text').value=''; document.getElementById('r-freq').value='';
+  save(); render(); closeSheet();
+}
+
+function addClient(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){alert('Enter a client name');return;}
+  if(state.clients.find(c=>c.name.toLowerCase()===name.toLowerCase())){alert('Client already exists!');return;}
+  const i=state.clients.length%BG_PAL.length;
+  state.clients.push({name,initials:name.split(' ').map(w=>w[0]).join('').substring(0,3).toUpperCase(),bg:BG_PAL[i],c:COL_PAL[i],dot:DOT_PAL[i]});
+  document.getElementById('c-name').value='';
+  save(); fillSelects(); closeSheet(); setMode('task');
+}
+
+function toggle(id){ done.has(id)?done.delete(id):done.add(id); save(); render(); }
+function deleteTask(id,e){ e.stopPropagation(); if(confirm('Delete this task?')){ state.tasks=state.tasks.filter(t=>t.id!==id); done.delete(id); save(); render(); } }
+function deleteClient(name,e){ e.stopPropagation(); if(confirm('Remove "'+name+'" and all their tasks?')){ state.clients=state.clients.filter(c=>c.name!==name); state.tasks=state.tasks.filter(t=>t.client!==name); save(); render(); } }
+function resetDone(){ if(confirm('Clear all ticks?')){ done.clear(); save(); render(); } }
+function setF(f){ filter=f; ['all','urgent','pending','done','recurring'].forEach(v=>{ document.getElementById('f-'+v).className='fbtn'+(v===f?' active':''); }); render(); }
+
+// ─── Meetings banner ──────────────────────────────────────────
+function renderMeetings(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  document.getElementById('mtg-chips').innerHTML=MEETINGS.map(m=>{
+    const d=new Date(m.date); const diff=Math.ceil((d-today)/864e5);
+    const past=diff<0,near=diff>=0&&diff<=7;
+    return `<span class="mtg-chip" style="background:${past?'#F3F4F6':near?'#FEF0F0':'#fff'};color:${past?'#9CA3AF':near?'#C0392B':'#5B21B6'};border:1px solid ${past?'#E5E7EB':near?'#FECACA':'#DDD6FE'};">${m.label} · ${past?'Done':diff===0?'Today!':diff+'d'}</span>`;
+  }).join('');
+}
+
+// ─── Main render ──────────────────────────────────────────────
+function render(){
+  const all=state.tasks;
+  const doneCount=all.filter(t=>done.has(t.id)).length;
+  document.getElementById('s-total').textContent=all.length;
+  document.getElementById('s-urgent').textContent=all.filter(t=>t.p==='urgent').length;
+  document.getElementById('s-pending').textContent=all.filter(t=>t.type==='task'&&!done.has(t.id)).length;
+  document.getElementById('s-done').textContent=doneCount;
+  document.getElementById('date-str').textContent=new Date().toLocaleDateString('en-SG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  let html=''; let shown=false;
+  state.clients.forEach(cl=>{
+    let tasks=all.filter(t=>t.client===cl.name&&t.type==='task');
+    let recs=all.filter(t=>t.client===cl.name&&t.type==='recurring');
+    if(filter==='urgent'){tasks=tasks.filter(t=>t.p==='urgent');recs=[];}
+    if(filter==='recurring'){tasks=[];}
+    if(filter==='pending'){tasks=tasks.filter(t=>!done.has(t.id));recs=[];}
+    if(filter==='done'){tasks=tasks.filter(t=>done.has(t.id));recs=recs.filter(t=>done.has(t.id));}
+    if(!tasks.length&&!recs.length) return;
+    shown=true;
+    tasks.sort((a,b)=>P_ORD[a.p]-P_ORD[b.p]);
+    const doneC=[...tasks,...recs].filter(t=>done.has(t.id)).length;
+    const urgC=tasks.filter(t=>t.p==='urgent').length;
+    const isCustom=!DEFAULT_CLIENTS.find(d=>d.name===cl.name);
+    html+=`<div class="client-card">
+      <div class="client-header">
+        <div class="client-avatar" style="background:${cl.bg};color:${cl.c};">${cl.initials}</div>
+        <div class="client-info"><div class="client-name" style="color:${cl.c};">${cl.name}</div><div class="client-sub">${doneC}/${tasks.length+recs.length} done</div></div>
+        ${urgC>0?`<span class="urg-badge">${urgC} urgent</span>`:''}
+        ${isCustom?`<button class="del-client-btn" onclick="deleteClient('${cl.name}',event)">Remove</button>`:''}
+      </div>`;
+    tasks.forEach(t=>{
+      const isDone=done.has(t.id);
+      html+=`<div class="task-row${isDone?' done':''}" onclick="toggle(${t.id})">
+        <div class="cb-circle" style="${isDone?'':'border-color:'+cl.dot+';'}"><svg class="chk" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="task-body">
+          ${t.date?`<div class="task-date">📅 ${new Date(t.date+'T00:00:00').toLocaleDateString('en-SG',{day:'numeric',month:'short',year:'numeric'})}</div>`:''}
+          <div class="task-text">${t.text}</div>
+          ${t.notes?`<div class="task-notes">${t.notes}</div>`:''}
+          <div class="task-pills"><span class="pill ${PILL_CLS[t.p]}">${PILL_TXT[t.p]}</span></div>
+        </div>
+        <button class="del-btn" onclick="deleteTask(${t.id},event)">×</button>
+      </div>`;
+    });
+    if(recs.length){
+      html+=`<div class="sec-div">Recurring</div>`;
+      recs.forEach(t=>{
+        const isDone=done.has(t.id);
+        html+=`<div class="task-row${isDone?' done':''}" onclick="toggle(${t.id})">
+          <div class="cb-circle" style="${isDone?'':'border-color:#9CA3AF;'}"><svg class="chk" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="task-body">
+            <div class="task-freq">${t.freq}</div>
+            <div class="task-text">${t.text}</div>
+            <div class="task-pills"><span class="pill p-recurring">Recurring</span></div>
+          </div>
+          <button class="del-btn" onclick="deleteTask(${t.id},event)">×</button>
+        </div>`;
+      });
+    }
+    html+='</div>';
+  });
+  document.getElementById('board').innerHTML=shown?html:'<div class="empty">Nothing here!</div>';
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+render();
+renderMeetings();
+pullFromCloud();
+</script>
+</body>
+</html>
